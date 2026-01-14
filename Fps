@@ -1,0 +1,215 @@
+
+-- Server Devourer V1.5 — FINAL DELTA FIX
+-- Font: Titan One
+
+------------------------------------------------
+-- SERVICES
+------------------------------------------------
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+
+------------------------------------------------
+-- GUI PARENT (DELTA SAFE)
+------------------------------------------------
+local guiParent = gethui and gethui() or player:WaitForChild("PlayerGui")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "ServerDevourerGui"
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 999 -- CRITICAL FOR DELTA
+gui.Parent = guiParent
+
+if syn and syn.protect_gui then
+    syn.protect_gui(gui)
+end
+
+------------------------------------------------
+-- GLOW (BEHIND EVERYTHING)
+------------------------------------------------
+local glow = Instance.new("Frame")
+glow.Parent = gui
+glow.Size = UDim2.fromScale(0.40, 0.58)
+glow.Position = UDim2.fromScale(0.30, 0.21)
+glow.BackgroundColor3 = Color3.fromRGB(49,39,154)
+glow.BackgroundTransparency = 0.82
+glow.BorderSizePixel = 0
+glow.ZIndex = 0
+Instance.new("UICorner", glow).CornerRadius = UDim.new(0,30)
+
+------------------------------------------------
+-- MAIN FRAME (ON TOP)
+------------------------------------------------
+local main = Instance.new("Frame")
+main.Parent = gui
+main.Size = UDim2.fromScale(0.38, 0.55)
+main.Position = UDim2.fromScale(0.31, 0.22)
+main.BackgroundColor3 = Color3.fromRGB(54,41,149)
+main.BackgroundTransparency = 0
+main.Active = true
+main.ZIndex = 10
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,22)
+
+------------------------------------------------
+-- STROKE
+------------------------------------------------
+local stroke = Instance.new("UIStroke", main)
+stroke.Thickness = 4
+stroke.Color = Color3.fromRGB(49,39,154)
+stroke.Transparency = 0.15
+
+------------------------------------------------
+-- CUSTOM DRAG (DELTA SAFE)
+------------------------------------------------
+local dragging, dragStart, startPos
+
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+------------------------------------------------
+-- TITLE
+------------------------------------------------
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.fromScale(1,0.16)
+title.BackgroundTransparency = 1
+title.Text = "Server Devourer V1.5\nby Jnxy"
+title.Font = Enum.Font.TitanOne
+title.TextScaled = true
+title.TextColor3 = Color3.new(1,1,1)
+title.ZIndex = 11
+Instance.new("UIStroke", title).Thickness = 3
+
+local divider = Instance.new("Frame", main)
+divider.Size = UDim2.fromScale(1,0.05)
+divider.Position = UDim2.fromScale(0,0.16)
+divider.BackgroundColor3 = Color3.fromRGB(49,39,154)
+divider.ZIndex = 11
+
+------------------------------------------------
+-- FPS / PING
+------------------------------------------------
+local statsText = Instance.new("TextLabel", main)
+statsText.Size = UDim2.fromScale(0.45,0.15)
+statsText.Position = UDim2.fromScale(0.05,0.22)
+statsText.BackgroundTransparency = 1
+statsText.Font = Enum.Font.TitanOne
+statsText.TextScaled = true
+statsText.TextXAlignment = Enum.TextXAlignment.Left
+statsText.TextColor3 = Color3.fromRGB(0,255,0)
+statsText.ZIndex = 11
+Instance.new("UIStroke", statsText).Thickness = 2
+
+------------------------------------------------
+-- BUTTON CREATOR
+------------------------------------------------
+local function makeButton(text, y, color, textColor)
+    local b = Instance.new("TextButton", main)
+    b.Size = UDim2.fromScale(0.9,0.12)
+    b.Position = UDim2.fromScale(0.05,y)
+    b.Text = text
+    b.Font = Enum.Font.TitanOne
+    b.TextScaled = true
+    b.BackgroundColor3 = color
+    b.TextColor3 = textColor or Color3.new(1,1,1)
+    b.AutoButtonColor = false
+    b.ZIndex = 11
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,18)
+    local s = Instance.new("UIStroke", b)
+    s.Thickness = 3
+    s.Color = Color3.new(0,0,0)
+    return b
+end
+
+------------------------------------------------
+-- BUTTONS
+------------------------------------------------
+local startLag = makeButton("START LAG",0.40,Color3.fromRGB(33,137,138))
+local stopLag  = makeButton("STOP LAG",0.54,Color3.fromRGB(125,11,10))
+local desync   = makeButton("DESYNC",0.68,Color3.fromRGB(253,253,253),Color3.new(0,0,0))
+local xray     = makeButton("XRAY",0.82,Color3.fromRGB(165,17,17))
+
+------------------------------------------------
+-- VISUAL TOGGLES
+------------------------------------------------
+startLag.MouseButton1Click:Connect(function()
+    startLag.BackgroundColor3 = Color3.fromRGB(60,200,60)
+end)
+
+stopLag.MouseButton1Click:Connect(function()
+    startLag.BackgroundColor3 = Color3.fromRGB(33,137,138)
+end)
+
+xray.MouseButton1Click:Connect(function()
+    local on = xray.BackgroundColor3 ~= Color3.fromRGB(60,200,60)
+    xray.BackgroundColor3 = on and Color3.fromRGB(60,200,60) or Color3.fromRGB(165,17,17)
+
+    for _,v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and not v:IsDescendantOf(player.Character) then
+            v.LocalTransparencyModifier = on and 0.6 or 0
+        end
+    end
+end)
+
+desync.MouseButton1Click:Connect(function()
+    local on = desync.BackgroundColor3 ~= Color3.fromRGB(60,200,60)
+    desync.BackgroundColor3 = on and Color3.fromRGB(60,200,60) or Color3.fromRGB(253,253,253)
+    desync.TextColor3 = on and Color3.new(1,1,1) or Color3.new(0,0,0)
+end)
+
+------------------------------------------------
+-- FPS / PING LOOP (SAFE)
+------------------------------------------------
+local frames, last = 0, tick()
+RunService.RenderStepped:Connect(function()
+    frames += 1
+    if tick() - last >= 1 then
+        local fps = frames
+        frames = 0
+        last = tick()
+
+        local ping = 0
+        pcall(function()
+            ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        end)
+
+        statsText.Text = ("PING:\n%d\n\nFPS:\n%d"):format(ping, fps)
+    end
+end)
+
+------------------------------------------------
+-- NEON ANIMATION
+------------------------------------------------
+task.spawn(function()
+    local t = 0
+    while gui.Parent do
+        t += RunService.RenderStepped:Wait()
+        stroke.Transparency = 0.1 + math.sin(t * 2) * 0.05
+        glow.BackgroundTransparency = 0.80 + math.sin(t * 2) * 0.05
+    end
+end)
